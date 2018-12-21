@@ -47,6 +47,16 @@ cellToSvgRect =
     ]
     [] )
 
+boxPattern:List (Int,Int)
+boxPattern=
+  let pattern = range -1 1
+  in
+      List.map (\n -> List.map (\m -> (n,m)) pattern) pattern
+  |>  concat
+
+--updateWorld: List Cell -> List Cell
+--updateWorld=
+
 split : Int -> List a -> List (List a)
 split i list =
   case take i list of
@@ -55,14 +65,13 @@ split i list =
 
 type alias Model = { cells:List Cell }
 
-init : () -> (Model, Cmd Msg)
-init flags =
-  (Model <| initCells 0,Cmd.none)
-
-
 type Msg
   =  Start
   | FlatList (List Int)
+
+init : () -> (Model, Cmd Msg)
+init flags =
+  (Model <| initCells 0,Cmd.none)
 
 update: Msg -> Model-> (Model , Cmd Msg)
 update msg model =
