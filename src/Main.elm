@@ -2,63 +2,106 @@ module Main exposing (..)
 
 import Random
 import List exposing (..)
+import Debug exposing (log)
 
 import Browser
 import Html exposing (..) --(h1, div, p, text)
 import Html.Attributes exposing (..) -- (class..)
-import Svg as S
+import Html.Events exposing (onClick)
+import Svg exposing (Svg,svg,rect)
 import Svg.Attributes as S
 import Bootstrap.CDN as CDN
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Grid.Col as Col
+import Bootstrap.Button as Button
 
 cellsNum: Int -> List (List Int)
 cellsNum =
-  repeat 100 << repeat 100
+  repeat 30 << repeat 30
+
+cellSize:Int
+cellSize= 20
 
 flattenCells: List (List Int) -> List( Int, Int, Int )
 flattenCells=
   concat << indexedMap (\y -> indexedMap (\x v-> (y,x,v)))
 
 type alias Cell = { y:Int , x:Int, v:Int }
-cells:List(Int,Int,Int) -> List Cell
-cells=
+cellsToCell:List(Int,Int,Int) -> List Cell
+cellsToCell=
   List.map (\(y,x,v)-> Cell y x v)
 
-initCells: Int ->  List Cell
+initCells: Int -> List Cell
 initCells=
-  cells << flattenCells << cellsNum
+  cellsToCell << flattenCells << cellsNum
 
-cellToSvgRect: List Cell -> List (S.Svg msg)
+cellToSvgRect: List Cell -> List (Svg msg)
 cellToSvgRect =
-  List.map (\cell -> S.rect 
-    [ S.x <| String.fromInt <| cell.x * 5
-    , S.y <| String.fromInt <| cell.y * 5
-    , S.width "5"
-    , S.height "5" ] 
+  List.map (\cell -> rect
+    [ S.x <| String.fromInt <| cell.x * cellSize
+    , S.y <| String.fromInt <| cell.y * cellSize
+    , S.width <| String.fromInt <| cellSize
+    , S.height <| String.fromInt <| cellSize
+    , S.style <| "fill:rgb(" ++ (String.join "," <| repeat 3 (String.fromInt <| cell.v * 255)) ++ ")"
+    ]
     [] )
 
-main =
-  Browser.sandbox { init = { cells =  initCells 1 } , update = update, view = view }
+split : Int -> List a -> List (List a)
+split i list =
+  case take i list of
+    [] -> []
+    head -> head :: split i (drop i list)
 
-update () model = model
+type alias Model = { cells:List Cell }
+
+init : () -> (Model, Cmd Msg)
+init flags =
+  (Model <| initCells 0,Cmd.none)
+
+
+type Msg
+  =  Start
+  | FlatList (List Int)
+
+update: Msg -> Model-> (Model , Cmd Msg)
+update msg model =
+  let _ = Debug.log "yo"
+  in
+  case msg of
+    Start ->
+      (model, Random.generate FlatList (Random.list (30 * 30) (Random.int 0 1)))
+    FlatList randomInts ->
+      ( { model | cells = cellsToCell <| flattenCells <| split 30 randomInts } , Cmd.none)
+
+-- SUBSCRIPTIONS
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Sub.none
+
+main =
+  Browser.element  { init = init , update = update, view = view ,subscriptions = subscriptions }
+
+dummy = Debug.log "Debug!"
 
 view model =
   Grid.container []
     [ CDN.stylesheet
     , Grid.row [ Row.attrs [ class "text-center align-middle" ] ]
-        [ Grid.col []
-            [ div [] [ text "Hello,Elm!" ] ]
+        [ Grid.col [] [ div [] [ text "Hello,Elm!" ] ]
         ]
     , Grid.row [ Row.attrs [ class "text-center align-middle" ] ]
         [ Grid.col []
-            [ S.svg
-                [ S.width "500"
-                , S.height "500"
-                , S.viewBox "0 0 500 500"
+            [ svg
+                [ S.width "600"
+                , S.height "600"
+                , S.viewBox "0 0 600 600"
                 ]
                 (cellToSvgRect model.cells)
             ]
+        ]
+    , Grid.row [ Row.attrs [ class "text-center align-middle" ] ]
+        [ Grid.col []
+            [ Button.button [ Button.primary, Button.attrs [ onClick Start ] ] [ text "start" ] ]
         ]
     ]
