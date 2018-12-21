@@ -40,7 +40,7 @@ initCells=
 styleColor v =
   case v of
     1 -> "fill:rgb(0,0,0)"
-    _ -> "fill:rgb(255,255,255)"
+    _ -> "fill:rgb(235,235,235)"
 
 cellToSvgRect: List Cell -> List (Svg msg)
 cellToSvgRect =
