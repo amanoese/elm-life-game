@@ -13,28 +13,27 @@ import Bootstrap.Grid.Col as Col
 
 cellsNum: List (List Int)
 cellsNum =
-  repeat 10 (repeat 10 1)
+  repeat 100 (repeat 100 1)
 
-flattenCellsNum: List (List Int) -> List (Int,Int)
-flattenCellsNum =
-  concatMap (indexedMap Tuple.pair)
+flattenCells: List (List Int) -> List(Int,Int,Int)
+flattenCells c =
+  concat (indexedMap (\y list -> indexedMap (\x v-> (y,x,v)) list) c)
 
-flattenCellsNumIndex: List (Int,Int) -> List(Int,Int,Int)
-flattenCellsNumIndex =
-  indexedMap (\i (a,b) -> (i,a,b))
-
-type alias Cell = { x:Int , y:Int, v:Int }
+type alias Cell = { y:Int , x:Int, v:Int }
 cells:List Cell
 cells =
   cellsNum
-  |> flattenCellsNum
-  |> flattenCellsNumIndex
-  |> List.map (\(x,y,v)->Cell x y v)
+  |> flattenCells
+  |> List.map (\(y,x,v)->Cell y x v)
 
 cellToSvgRect: List Cell -> List (S.Svg msg)
 cellToSvgRect =
-  List.map (\cell -> S.rect [ S.x <| String.fromInt <| cell.x * 5, S.y <| String.fromInt <| cell.y * 5  , S.width "5" , S.height "5" ] [] )
-
+  List.map (\cell -> S.rect 
+    [ S.x <| String.fromInt <| cell.x * 5
+    , S.y <| String.fromInt <| cell.y * 5
+    , S.width "5"
+    , S.height "5" ] 
+    [] )
 
 main =
   Browser.sandbox {
