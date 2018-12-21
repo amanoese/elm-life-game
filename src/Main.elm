@@ -3,6 +3,7 @@ module Main exposing (..)
 import Random
 import List exposing (..)
 import Debug exposing (log)
+import Time as T
 
 import Browser
 import Html exposing (..) --(h1, div, p, text)
@@ -36,6 +37,11 @@ initCells: Int -> List Cell
 initCells=
   cellsToCell << flattenCells << cellsNum
 
+styleColor v =
+  case v of
+    1 -> "fill:rgb(0,0,0)"
+    _ -> "fill:rgb(255,255,255)"
+
 cellToSvgRect: List Cell -> List (Svg msg)
 cellToSvgRect =
   List.map (\cell -> rect
@@ -43,7 +49,7 @@ cellToSvgRect =
     , S.y <| String.fromInt <| cell.y * cellSize
     , S.width <| String.fromInt <| cellSize
     , S.height <| String.fromInt <| cellSize
-    , S.style <| "fill:rgb(" ++ (String.join "," <| repeat 3 (String.fromInt <| cell.v * 255)) ++ ")"
+    , S.style <| styleColor cell.v
     ]
     [] )
 
@@ -65,7 +71,7 @@ cellState {x,y,v} cells =
         = mooreNeighborhood (x,y)
       aliveCount
         = cells
-        |> List.filter (\cell-> List.any (\(a,b)-> (a,b) == (cell.y,cell.x)) mnCells)
+        |> List.filter (\cell-> List.any ((==) (cell.x,cell.y)) mnCells)
         |> List.map (\cell->cell.v)
         |> foldl (+)  0
   in
@@ -84,33 +90,41 @@ split i list =
     [] -> []
     head -> head :: split i (drop i list)
 
-type alias Model = { cells:List Cell }
+type alias Model = { cells:List Cell, run:Bool}
 
 type Msg
   =  Start
   | FlatList (List Int)
   | Next
+  | Stop
 
 init : () -> (Model, Cmd Msg)
 init flags =
-  (Model <| initCells 0,Cmd.none)
+  (Model (initCells 0) False,Cmd.none)
 
 update: Msg -> Model-> (Model , Cmd Msg)
 update msg model =
-  let _ = Debug.log "yo"
-  in
   case msg of
     Start ->
       (model, Random.generate FlatList (Random.list (30 * 30) (Random.int 0 1)))
     FlatList randomInts ->
-      ( { model | cells = cellsToCell <| flattenCells <| split 30 randomInts } , Cmd.none)
+      ( { model
+          | cells = cellsToCell <| flattenCells <| split 30 randomInts
+          , run = True
+        }
+        , Cmd.none
+      )
     Next ->
       ( { model | cells = updateWorld model.cells}, Cmd.none)
+    Stop ->
+      ( { model | run = False}, Cmd.none)
 
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Sub.none
+  case model.run of
+    True -> T.every 500 (always Next)
+    _ ->  Sub.none
 
 main =
   Browser.element  { init = init , update = update, view = view ,subscriptions = subscriptions }
@@ -134,9 +148,8 @@ view model =
             ]
         ]
     , Grid.row [ Row.attrs [ class "text-center align-middle" ] ]
-        [ Grid.col []
-            [ Button.button [ Button.primary, Button.attrs [ onClick Start ] ] [ text "start" ]
-            , Button.button [ Button.primary, Button.attrs [ onClick Next ] ] [ text "Next" ]
-            ]
+        [ Grid.col [] [ Button.button [ Button.primary, Button.attrs [ onClick Start ] ] [ text "start" ] ]
+        , Grid.col [] [ Button.button [ Button.success, Button.attrs [ onClick Next ] ] [ text "Next" ] ]
+        , Grid.col [] [ Button.button [ Button.primary, Button.attrs [ onClick Stop ] ] [ text "Stop" ] ]
         ]
     ]
