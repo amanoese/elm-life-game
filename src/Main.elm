@@ -53,9 +53,30 @@ boxPattern=
   in
       List.map (\n -> List.map (\m -> (n,m)) pattern) pattern
   |>  concat
+  |>  List.filter ((/=) (0,0))
 
---updateWorld: List Cell -> List Cell
---updateWorld=
+mooreNeighborhood: (Int, Int) -> List (Int, Int)
+mooreNeighborhood (x,y) =
+  List.map (\(x2,y2) -> (x + x2, y + y2)) boxPattern
+
+cellState: Cell -> List Cell -> Int
+cellState {x,y,v} cells =
+  let mnCells
+        = mooreNeighborhood (x,y)
+      aliveCount
+        = cells
+        |> List.filter (\cell-> List.any (\(a,b)-> (a,b) == (cell.y,cell.x)) mnCells)
+        |> List.map (\cell->cell.v)
+        |> foldl (+)  0
+  in
+    case (aliveCount,v) of
+      (3,_) -> 1
+      (2,1) -> 1
+      (_,_) -> 0
+
+updateWorld: List Cell -> List Cell
+updateWorld cells=
+  List.map (\cell->{cell | v = cellState cell cells }) cells
 
 split : Int -> List a -> List (List a)
 split i list =
@@ -68,6 +89,7 @@ type alias Model = { cells:List Cell }
 type Msg
   =  Start
   | FlatList (List Int)
+  | Next
 
 init : () -> (Model, Cmd Msg)
 init flags =
@@ -82,6 +104,8 @@ update msg model =
       (model, Random.generate FlatList (Random.list (30 * 30) (Random.int 0 1)))
     FlatList randomInts ->
       ( { model | cells = cellsToCell <| flattenCells <| split 30 randomInts } , Cmd.none)
+    Next ->
+      ( { model | cells = updateWorld model.cells}, Cmd.none)
 
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
@@ -111,6 +135,8 @@ view model =
         ]
     , Grid.row [ Row.attrs [ class "text-center align-middle" ] ]
         [ Grid.col []
-            [ Button.button [ Button.primary, Button.attrs [ onClick Start ] ] [ text "start" ] ]
+            [ Button.button [ Button.primary, Button.attrs [ onClick Start ] ] [ text "start" ]
+            , Button.button [ Button.primary, Button.attrs [ onClick Next ] ] [ text "Next" ]
+            ]
         ]
     ]
