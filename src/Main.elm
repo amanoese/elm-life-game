@@ -1,7 +1,9 @@
 module Main exposing (..)
 
-import Browser
+import Random
 import List exposing (..)
+
+import Browser
 import Html exposing (..) --(h1, div, p, text)
 import Html.Attributes exposing (..) -- (class..)
 import Svg as S
@@ -11,20 +13,22 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Grid.Col as Col
 
-cellsNum: List (List Int)
+cellsNum: Int -> List (List Int)
 cellsNum =
-  repeat 100 (repeat 100 1)
+  repeat 100 << repeat 100
 
-flattenCells: List (List Int) -> List(Int,Int,Int)
-flattenCells c =
-  concat (indexedMap (\y list -> indexedMap (\x v-> (y,x,v)) list) c)
+flattenCells: List (List Int) -> List( Int, Int, Int )
+flattenCells=
+  concat << indexedMap (\y -> indexedMap (\x v-> (y,x,v)))
 
 type alias Cell = { y:Int , x:Int, v:Int }
-cells:List Cell
-cells =
-  cellsNum
-  |> flattenCells
-  |> List.map (\(y,x,v)->Cell y x v)
+cells:List(Int,Int,Int) -> List Cell
+cells=
+  List.map (\(y,x,v)-> Cell y x v)
+
+initCells: Int ->  List Cell
+initCells=
+  cells << flattenCells << cellsNum
 
 cellToSvgRect: List Cell -> List (S.Svg msg)
 cellToSvgRect =
@@ -36,10 +40,7 @@ cellToSvgRect =
     [] )
 
 main =
-  Browser.sandbox {
-      init = { cells =  cells }
-    , update = update, view = view 
-    }
+  Browser.sandbox { init = { cells =  initCells 1 } , update = update, view = view }
 
 update () model = model
 
