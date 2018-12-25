@@ -19,33 +19,24 @@ import Bootstrap.Grid.Row as Row
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Button as Button
 
-cellsNum: Int -> List (List Int)
-cellsNum =
-  repeat 30 << repeat 30
+type alias CellSize = Int
+type alias Cell = { x:Int , y:Int, v:Int }
 
-cellSize:Int
-cellSize= 20
-
-flattenCells: List (List Int) -> List( Int, Int, Int )
+flattenCells: List (List Int) -> List Cell
 flattenCells=
-  concat << indexedMap (\y -> indexedMap (\x v-> (x,y,v)))
-
-type alias Cell = { y:Int , x:Int, v:Int }
-cellsToCell:List(Int,Int,Int) -> List Cell
-cellsToCell=
-  List.map (\(y,x,v)-> Cell y x v)
+  concat << indexedMap (\y -> indexedMap (\x v-> Cell x y v))
 
 initCells: Int -> List Cell
 initCells=
-  cellsToCell << flattenCells << cellsNum
+  flattenCells << repeat 30 << repeat 30
 
 styleColor v =
   case v of
     1 -> "fill:rgb(0,0,0)"
     _ -> "fill:rgb(235,235,235)"
 
-cellToSvgRect: List Cell -> List (Svg msg)
-cellToSvgRect =
+cellToSvgRect:CellSize -> List Cell -> List (Svg msg)
+cellToSvgRect cellSize =
   List.map (\cell -> rect
     [ S.x <| String.fromInt <| cell.x * cellSize
     , S.y <| String.fromInt <| cell.y * cellSize
@@ -55,17 +46,15 @@ cellToSvgRect =
     ]
     [] )
 
-boxPattern:List (Int,Int)
-boxPattern=
-  let pattern = range -1 1
-  in
-      List.map (\n -> List.map (\m -> (n,m)) pattern) pattern
-  |>  concat
-  |>  List.filter ((/=) (0,0))
-
 mooreNeighborhood: (Int, Int) -> List (Int, Int)
 mooreNeighborhood (x,y) =
-  List.map (\(x2,y2) -> (x + x2, y + y2)) boxPattern
+  let pattern = range -1 1
+  in
+  pattern
+  |> List.map (\n -> List.map (\m -> (n,m)) pattern)
+  |> concat
+  |> List.filter ((/=) (0,0))
+  |> List.map (Tuple.mapBoth ((+) x) ((+) y))
 
 cellState: Cell -> Dict (Int,Int) Int -> Int
 cellState {x,y,v} dictDictCells =
@@ -81,8 +70,8 @@ cellState {x,y,v} dictDictCells =
       (2,1) -> 1
       _ -> 0
 
-updateWorld: List Cell -> List Cell
-updateWorld cells =
+updateState: List Cell -> List Cell
+updateState cells =
   let dictDictCells
         = cells
         |> List.map (\{x,y,v}-> ((x, y), v))
@@ -96,7 +85,13 @@ split i list =
     [] -> []
     head -> head :: split i (drop i list)
 
-type alias Model = { cells:List Cell, run:Bool, generation:Int}
+type alias Model =
+  { cells:List Cell
+  , run:Bool
+  , generation:Int
+  , cellSize:Int
+  }
+
 
 type Msg
   =  Init
@@ -107,21 +102,23 @@ type Msg
 
 init : () -> (Model, Cmd Msg)
 init flags =
-  (Model (initCells 0) False 0,Cmd.none)
+  ( { cells = initCells 0, run = False, generation = 0 , cellSize = 30} ,Cmd.none)
 
 update: Msg -> Model-> (Model , Cmd Msg)
 update msg model =
+  let { cells, cellSize } = model
+  in
   case msg of
     Init ->
-      (model, Random.generate RandomList (Random.list (30 * 30) (Random.int 0 1)))
+      (model, Random.generate RandomList (Random.list (cellSize ^ 2) (Random.int 0 1)))
     RandomList randomInts ->
-      ( { model | cells = cellsToCell <| flattenCells <| split 30 randomInts }
+      ( { model | cells = flattenCells <| split cellSize randomInts }
         , Cmd.none
       )
     Start ->
       ( { model | run = True }, Cmd.none)
     Next ->
-      ( { model | cells = updateWorld model.cells }, Cmd.none)
+      ( { model | cells = updateState cells }, Cmd.none)
     Stop ->
       ( { model | run = False }, Cmd.none)
 
@@ -150,7 +147,7 @@ view model =
                 , S.height "600"
                 , S.viewBox "0 0 600 600"
                 ]
-                (cellToSvgRect model.cells)
+                (cellToSvgRect model.cellSize model.cells)
             ]
         ]
     , Grid.row [ Row.attrs [ class "text-center align-middle" ] ]
