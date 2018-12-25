@@ -2,6 +2,7 @@ module Main exposing (..)
 
 import Random
 import List exposing (..)
+import Dict exposing (..)
 import Debug exposing (log)
 import Time as T
 
@@ -65,24 +66,30 @@ mooreNeighborhood: (Int, Int) -> List (Int, Int)
 mooreNeighborhood (x,y) =
   List.map (\(x2,y2) -> (x + x2, y + y2)) boxPattern
 
-cellState: Cell -> List Cell -> Int
-cellState {x,y,v} cells =
+cellState: Cell -> Dict Int (Dict Int Int) -> Int
+cellState {x,y,v} dictDictCells =
   let mnCells
         = mooreNeighborhood (x,y)
-      aliveCount
-        = cells
-        |> List.filter (\cell-> List.any ((==) (cell.x,cell.y)) mnCells)
-        |> List.map (\cell->cell.v)
+        |> List.map (\cell->
+            Dict.get cell.y dictDictCell
+            |> andThen Dict.get cell.x
+            |> andThen withDefault 0)
         |> foldl (+)  0
   in
     case (aliveCount,v) of
       (3,_) -> 1
       (2,1) -> 1
-      (_,_) -> 0
+      _ -> 0
 
 updateWorld: List Cell -> List Cell
-updateWorld cells=
-  List.map (\cell->{cell | v = cellState cell cells }) cells
+updateWorld cells =
+  let dictDictCells
+        = cells
+        |> List.map (\{y,x,v}-> (x, (List.filter (\cell-> cell.y == y) cells)))
+        |> Dict.fromList
+        |> Dict.map (\list-> Dict.fromList <| List.map (\{y,v}->(y,v)))
+  in
+      List.map (\cell->{cell | v = cellState cell dictDictCells}) cells
 
 split : Int -> List a -> List (List a)
 split i list =
