@@ -1,0 +1,24 @@
+{
+  "name": "elm-life-game",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "elm": "^0.19.0-bugfix2"
+  },
+  "scripts": {
+    "build": "elm make src/Main.elm --output dest/index.html",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amanoese/elm-life-game.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/amanoese/elm-life-game/issues"
+  },
+  "homepage": "https://github.com/amanoese/elm-life-game#readme",
+  "description": ""
+}
