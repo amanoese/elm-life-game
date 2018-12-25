@@ -3,6 +3,7 @@ module Main exposing (..)
 import Random
 import List exposing (..)
 import Dict exposing (..)
+import Maybe exposing (..)
 import Debug exposing (log)
 import Time as T
 
@@ -27,7 +28,7 @@ cellSize= 20
 
 flattenCells: List (List Int) -> List( Int, Int, Int )
 flattenCells=
-  concat << indexedMap (\y -> indexedMap (\x v-> (y,x,v)))
+  concat << indexedMap (\y -> indexedMap (\x v-> (x,y,v)))
 
 type alias Cell = { y:Int , x:Int, v:Int }
 cellsToCell:List(Int,Int,Int) -> List Cell
@@ -66,15 +67,14 @@ mooreNeighborhood: (Int, Int) -> List (Int, Int)
 mooreNeighborhood (x,y) =
   List.map (\(x2,y2) -> (x + x2, y + y2)) boxPattern
 
-cellState: Cell -> Dict Int (Dict Int Int) -> Int
+cellState: Cell -> Dict (Int,Int) Int -> Int
 cellState {x,y,v} dictDictCells =
-  let mnCells
+  let aliveCount
         = mooreNeighborhood (x,y)
-        |> List.map (\cell->
-            Dict.get cell.y dictDictCell
-            |> andThen Dict.get cell.x
-            |> andThen withDefault 0)
-        |> foldl (+)  0
+        |> List.map (\key->
+            Dict.get key dictDictCells
+            |> withDefault 0)
+        |> List.foldl (+)  0
   in
     case (aliveCount,v) of
       (3,_) -> 1
@@ -85,9 +85,8 @@ updateWorld: List Cell -> List Cell
 updateWorld cells =
   let dictDictCells
         = cells
-        |> List.map (\{y,x,v}-> (x, (List.filter (\cell-> cell.y == y) cells)))
+        |> List.map (\{x,y,v}-> ((x, y), v))
         |> Dict.fromList
-        |> Dict.map (\list-> Dict.fromList <| List.map (\{y,v}->(y,v)))
   in
       List.map (\cell->{cell | v = cellState cell dictDictCells}) cells
 
@@ -97,40 +96,40 @@ split i list =
     [] -> []
     head -> head :: split i (drop i list)
 
-type alias Model = { cells:List Cell, run:Bool}
+type alias Model = { cells:List Cell, run:Bool, generation:Int}
 
 type Msg
-  =  Start
-  | FlatList (List Int)
+  =  Init
+  | RandomList (List Int)
+  | Start
   | Next
   | Stop
 
 init : () -> (Model, Cmd Msg)
 init flags =
-  (Model (initCells 0) False,Cmd.none)
+  (Model (initCells 0) False 0,Cmd.none)
 
 update: Msg -> Model-> (Model , Cmd Msg)
 update msg model =
   case msg of
-    Start ->
-      (model, Random.generate FlatList (Random.list (30 * 30) (Random.int 0 1)))
-    FlatList randomInts ->
-      ( { model
-          | cells = cellsToCell <| flattenCells <| split 30 randomInts
-          , run = True
-        }
+    Init ->
+      (model, Random.generate RandomList (Random.list (30 * 30) (Random.int 0 1)))
+    RandomList randomInts ->
+      ( { model | cells = cellsToCell <| flattenCells <| split 30 randomInts }
         , Cmd.none
       )
+    Start ->
+      ( { model | run = True }, Cmd.none)
     Next ->
-      ( { model | cells = updateWorld model.cells}, Cmd.none)
+      ( { model | cells = updateWorld model.cells }, Cmd.none)
     Stop ->
-      ( { model | run = False}, Cmd.none)
+      ( { model | run = False }, Cmd.none)
 
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
 subscriptions model =
   case model.run of
-    True -> T.every 500 (always Next)
+    True -> T.every 200 (always Next)
     _ ->  Sub.none
 
 main =
@@ -155,7 +154,8 @@ view model =
             ]
         ]
     , Grid.row [ Row.attrs [ class "text-center align-middle" ] ]
-        [ Grid.col [] [ Button.button [ Button.primary, Button.attrs [ onClick Start ] ] [ text "start" ] ]
+        [ Grid.col [] [ Button.button [ Button.primary, Button.attrs [ onClick Init ] ] [ text "Init" ] ]
+        , Grid.col [] [ Button.button [ Button.primary, Button.attrs [ onClick Start ] ] [ text "Start" ] ]
         , Grid.col [] [ Button.button [ Button.success, Button.attrs [ onClick Next ] ] [ text "Next" ] ]
         , Grid.col [] [ Button.button [ Button.primary, Button.attrs [ onClick Stop ] ] [ text "Stop" ] ]
         ]
