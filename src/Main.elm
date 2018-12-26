@@ -90,6 +90,7 @@ type alias Model =
   , run:Bool
   , generation:Int
   , cellSize:Int
+  , numberOfCells:Int
   }
 
 
@@ -102,17 +103,17 @@ type Msg
 
 init : () -> (Model, Cmd Msg)
 init flags =
-  ( { cells = initCells 0, run = False, generation = 0 , cellSize = 30} ,Cmd.none)
+  ( { cells = initCells 0, run = False, generation = 0 , cellSize = 20 , numberOfCells = 30 } ,Cmd.none)
 
 update: Msg -> Model-> (Model , Cmd Msg)
 update msg model =
-  let { cells, cellSize } = model
+  let { cells, numberOfCells } = model
   in
   case msg of
     Init ->
-      (model, Random.generate RandomList (Random.list (cellSize ^ 2) (Random.int 0 1)))
+      (model, Random.generate RandomList (Random.list (numberOfCells ^ 2) (Random.int 0 1)))
     RandomList randomInts ->
-      ( { model | cells = flattenCells <| split cellSize randomInts }
+      ( { model | cells = flattenCells <| split numberOfCells randomInts }
         , Cmd.none
       )
     Start ->
@@ -135,6 +136,9 @@ main =
 dummy = Debug.log "Debug!"
 
 view model =
+  let boxWidth =   String.fromInt <| model.cellSize * model.numberOfCells
+      boxHeight = String.fromInt <| model.cellSize * model.numberOfCells
+  in
   Grid.container []
     [ CDN.stylesheet
     , Grid.row [ Row.attrs [ class "text-center align-middle" ] ]
@@ -143,9 +147,9 @@ view model =
     , Grid.row [ Row.attrs [ class "text-center align-middle" ] ]
         [ Grid.col []
             [ svg
-                [ S.width "600"
-                , S.height "600"
-                , S.viewBox "0 0 600 600"
+                [ S.width boxWidth
+                , S.height boxHeight
+                , S.viewBox <| String.join " " ["0","0",boxWidth,boxHeight]
                 ]
                 (cellToSvgRect model.cellSize model.cells)
             ]
