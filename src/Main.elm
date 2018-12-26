@@ -17,7 +17,7 @@ import Bootstrap.CDN as CDN
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Grid.Col as Col
-import Bootstrap.Button as Button
+import Bootstrap.Button as B
 
 type alias CellSize = Int
 type alias Cell = { x:Int , y:Int, v:Int }
@@ -89,7 +89,6 @@ type alias Model =
   { cells:List Cell
   , run:Bool
   , generation:Int
-  , cellSize:Int
   , numberOfCells:Int
   }
 
@@ -103,7 +102,7 @@ type Msg
 
 init : () -> (Model, Cmd Msg)
 init flags =
-  ( { cells = initCells 0, run = False, generation = 0 , cellSize = 20 , numberOfCells = 30 } ,Cmd.none)
+  ( { cells = initCells 0, run = False, generation = 0 , numberOfCells = 50 } ,Cmd.none)
 
 update: Msg -> Model-> (Model , Cmd Msg)
 update msg model =
@@ -136,28 +135,30 @@ main =
 dummy = Debug.log "Debug!"
 
 view model =
-  let boxWidth =   String.fromInt <| model.cellSize * model.numberOfCells
-      boxHeight = String.fromInt <| model.cellSize * model.numberOfCells
+  let cellSize = 5
+      boxWidth =  "500"
+      viewBoxWidth = String.fromInt <| model.numberOfCells * cellSize
   in
   Grid.container []
     [ CDN.stylesheet
-    , Grid.row [ Row.attrs [ class "text-center align-middle" ] ]
-        [ Grid.col [] [ div [] [ text "Hello,Elm!" ] ]
+    , div [ class "jumbotron" ]
+        [ h1 [] [ text "Elm Life Game!" ]
         ]
     , Grid.row [ Row.attrs [ class "text-center align-middle" ] ]
+        [ Grid.col [] [ B.button [ B.primary, B.attrs [ onClick Init ] ] [ text "Init" ] ]
+        , Grid.col [] [ B.button [ B.primary, B.attrs [ onClick Start ] ] [ text "Start" ] ]
+        , Grid.col [] [ B.button [ B.success, B.attrs [ onClick Next ] ] [ text "Next" ] ]
+        , Grid.col [] [ B.button [ B.primary, B.attrs [ onClick Stop ] ] [ text "Stop" ] ]
+        ]
+    , Grid.row [ Row.attrs [ class "text-center align-middle p-2" ] ]
         [ Grid.col []
             [ svg
                 [ S.width boxWidth
-                , S.height boxHeight
-                , S.viewBox <| String.join " " ["0","0",boxWidth,boxHeight]
+                , S.height boxWidth
+                , S.viewBox <| String.join " " ["0","0",viewBoxWidth,viewBoxWidth]
+                , S.preserveAlpha "none"
                 ]
-                (cellToSvgRect model.cellSize model.cells)
+                (cellToSvgRect cellSize model.cells)
             ]
-        ]
-    , Grid.row [ Row.attrs [ class "text-center align-middle" ] ]
-        [ Grid.col [] [ Button.button [ Button.primary, Button.attrs [ onClick Init ] ] [ text "Init" ] ]
-        , Grid.col [] [ Button.button [ Button.primary, Button.attrs [ onClick Start ] ] [ text "Start" ] ]
-        , Grid.col [] [ Button.button [ Button.success, Button.attrs [ onClick Next ] ] [ text "Next" ] ]
-        , Grid.col [] [ Button.button [ Button.primary, Button.attrs [ onClick Stop ] ] [ text "Stop" ] ]
         ]
     ]
