@@ -4,7 +4,6 @@ import Random
 import List exposing (..)
 import Dict exposing (..)
 import Maybe exposing (..)
-import Debug exposing (log)
 import Time as T
 
 import Browser
@@ -101,7 +100,7 @@ type Msg
   | Stop
 
 init : () -> (Model, Cmd Msg)
-init flags =
+init _ =
   ( { cells = initCells 0, run = False, generation = 0 , numberOfCells = 50 } ,Cmd.none)
 
 update: Msg -> Model-> (Model , Cmd Msg)
@@ -131,8 +130,6 @@ subscriptions model =
 
 main =
   Browser.element  { init = init , update = update, view = view ,subscriptions = subscriptions }
-
-dummy = Debug.log "Debug!"
 
 view model =
   let cellSize = 5
